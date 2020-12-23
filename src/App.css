@@ -36,3 +36,12 @@
     transform: rotate(360deg);
   }
 }
+
+.number-display {
+	height: 400px;
+	width: 100%;
+	font-size: 2000%;
+	text-align: center;
+	margin: auto;
+	border : 3px solid blue;	
+}

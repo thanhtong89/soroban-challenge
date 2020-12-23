@@ -1,23 +1,158 @@
+import React from 'react';
+import { format } from 'react-string-format';
 import logo from './logo.svg';
 import './App.css';
+import beep from "./beep.mp3";
+
+function NumberDisplay(props) {
+    return (
+        <div className="number-display">{props.value}</div>
+    )
+}
+
+class SorobanGame extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            numCount: 10,
+            numDigits: 2,
+            numbers : null,
+            total_ms: 10000,
+            currDisplay: "",
+			answer : "",
+            // READY -> PLAYING -> ANSWER -> READY. Transition via spacebar.
+            state : "READY",
+        };
+		this.keyPressFunc = this.keyPressFunc.bind(this);
+		this.handleChangeNumCount = this.handleChangeNumCount.bind(this);
+		this.handleChangeNumDigits = this.handleChangeNumDigits.bind(this);
+		this.handleChangeTotalSecs = this.handleChangeTotalSecs.bind(this);
+		this.beepSound = new Audio(beep);
+    }
+    advanceState() {
+		switch (this.state.state) {
+			case 'READY':
+				console.log(`Advancing from READY state... numCount=${this.state.numCount}`);
+				// generates new problem and start flashing
+				const numbers = this.getRandomNumbers(this.state.numCount, this.state.numDigits);
+				this.setState({
+					state : 'PLAYING',
+					numbers : numbers,
+					answer : "",
+				});
+				this.startFlash(this.state.total_ms, numbers);
+				break;
+			case 'PLAYING':
+				console.log("Advancing from PLAYING state...");
+				// stops flashing, show full sequence + answer at bottom
+				this.setState({state : 'READY'});
+				break;
+		}
+    }
+
+	sleep(ms) {
+	  return new Promise(resolve => setTimeout(resolve, ms));
+	}
+
+	async startFlash(total_ms, numbers) {
+		console.log(`Starting Flashing with delay ${total_ms} and numbers ${numbers}`);
+		const timePerNumber = total_ms / numbers.length;
+		const displayTime = timePerNumber * 0.9
+		for (var number of numbers) {
+			this.setState({currDisplay : number});
+			this.beepSound.play();
+			setTimeout(() => {this.setState({currDisplay: ""});}, displayTime);
+			await this.sleep(timePerNumber);
+			if (this.state.state === "READY") {
+				// user canceled current game -- abort flashing!
+				console.log("breaking...");
+				break;
+			}
+		}
+		console.log("Done!");
+		this.setState({state : 'READY'});
+		this.displayResult();	
+	}
+
+	displayResult() {
+		// displays full number list and final result
+		const answer = format("{0} = {1}", this.state.numbers.join(" + "), this.getSum(this.state.numbers));
+		this.setState({
+			answer:answer,
+			currDisplay : "",
+		});
+	}
+
+    keyPressFunc(event) {
+		if (event.code === "Space") {
+			this.advanceState();
+		}
+    }
+    
+    getRandomInt(max) {
+        return Math.floor(Math.random() * max)
+    }
+
+    getSum(numbers) {
+        return numbers.reduce((sum, x) => sum + x)
+    }
+
+    getRandomNumbers(numCount, numDigits) {
+        const maxIncr = 9 * Math.pow(10, numDigits-1)
+        const minInt = Math.pow(10, numDigits-1)
+        const numbers = [];
+        for (var i = 0; i < numCount; i++) {
+            const n = minInt + this.getRandomInt(maxIncr)
+            numbers.push(n);
+        }
+        return numbers
+    }
+
+	handleChangeNumCount(event) {
+		this.setState({
+			numCount : event.target.value,
+		});	
+	}
+	handleChangeNumDigits(event) {
+		this.setState({
+			numDigits: event.target.value,
+		});
+	}
+   	handleChangeTotalSecs(event) {
+		this.setState({
+			total_ms: event.target.value*1000,
+		});
+	}
+ render() {
+        const currState = format("{0}. Click anywhere below here and press Spacebar to play!", this.state.state)
+		const answer = this.state.answer;
+        return (
+            <div tabIndex="-1"  onKeyDown={this.keyPressFunc}>
+				<h1>The Soroban Challenge!</h1>
+				<label>
+					Number count: {this.state.numCount}
+					<input type="range" min="1" max="100" value={this.state.numCount} onChange={this.handleChangeNumCount}/>
+				</label>
+				<label>
+					Number of Digits: {this.state.numDigits}
+					<input type="range" min="1" max="10" value={this.state.numDigits} onChange={this.handleChangeNumDigits}/>
+				</label>
+				<label>
+					Total time (in seconds): {this.state.total_ms/1000}
+					<input type="range" min="1" max="30" value={this.state.total_ms / 1000} onChange={this.handleChangeTotalSecs}/>
+				</label>
+				<div className="state">{currState}</div>
+				<NumberDisplay value={this.state.currDisplay}/>
+				<div className="answer">{answer}</div>
+            </div>
+        );
+    }
+}
 
 function App() {
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <SorobanGame />
     </div>
   );
 }
