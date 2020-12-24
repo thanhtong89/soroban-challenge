@@ -1,6 +1,5 @@
 import React from 'react';
 import { format } from 'react-string-format';
-import logo from './logo.svg';
 import './App.css';
 import beep from "./beep.mp3";
 
@@ -52,6 +51,9 @@ class SorobanGame extends React.Component {
 				this.setState({state : 'READY'});
                 this.displayResult();	
 				break;
+            default:
+                break;
+
 		}
     }
 
@@ -130,7 +132,7 @@ class SorobanGame extends React.Component {
  render() {
 		const answer = this.state.answer;
         let buttonTitle = "PLAY!";
-        if (this.state.state == "PLAYING") {
+        if (this.state.state === "PLAYING") {
             buttonTitle = "STOP";
         }
         return (
