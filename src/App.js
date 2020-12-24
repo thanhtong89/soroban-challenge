@@ -23,7 +23,7 @@ class SorobanGame extends React.Component {
             // READY -> PLAYING -> ANSWER -> READY. Transition via spacebar.
             state : "READY",
         };
-		this.keyPressFunc = this.keyPressFunc.bind(this);
+		this.handleButton = this.handleButton.bind(this);
 		this.handleChangeNumCount = this.handleChangeNumCount.bind(this);
 		this.handleChangeNumDigits = this.handleChangeNumDigits.bind(this);
 		this.handleChangeTotalSecs = this.handleChangeTotalSecs.bind(this);
@@ -83,10 +83,8 @@ class SorobanGame extends React.Component {
 		});
 	}
 
-    keyPressFunc(event) {
-		if (event.code === "Space") {
+    handleButton() {
 			this.advanceState();
-		}
     }
     
     getRandomInt(max) {
@@ -124,10 +122,13 @@ class SorobanGame extends React.Component {
 		});
 	}
  render() {
-        const currState = format("{0}. Click anywhere below here and press Spacebar to play!", this.state.state)
 		const answer = this.state.answer;
+        let buttonTitle = "PLAY!";
+        if (this.state.state == "PLAYING") {
+            buttonTitle = "STOP";
+        }
         return (
-            <div tabIndex="-1"  onKeyDown={this.keyPressFunc}>
+            <div>
 				<h1>The Soroban Challenge!</h1>
 				<label>
 					Number count: {this.state.numCount}
@@ -141,7 +142,9 @@ class SorobanGame extends React.Component {
 					Total time (in seconds): {this.state.total_ms/1000}
 					<input type="range" min="1" max="30" value={this.state.total_ms / 1000} onChange={this.handleChangeTotalSecs}/>
 				</label>
-				<div className="state">{currState}</div>
+                <div>
+                <button className="main-button" onClick={this.handleButton}>{buttonTitle}</button>
+                </div>
 				<NumberDisplay value={this.state.currDisplay}/>
 				<div className="answer">{answer}</div>
             </div>
