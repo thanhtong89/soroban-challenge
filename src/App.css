@@ -39,11 +39,11 @@
 
 .number-display {
 	height: 400px;
-	width: 100%;
-	font-size: 2000%;
+    width: 100%;
 	text-align: center;
 	margin: auto;
 	border : 3px solid black;
+    font-size: calc(100px + 20vmin);
 }
 
 .main-button {

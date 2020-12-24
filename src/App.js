@@ -4,10 +4,14 @@ import logo from './logo.svg';
 import './App.css';
 import beep from "./beep.mp3";
 
-function NumberDisplay(props) {
-    return (
-        <div className="number-display">{props.value}</div>
-    )
+class NumberDisplay extends React.Component {
+    render() {
+        return (
+            <div>
+            <p className="number-display">{this.props.value}</p>
+            </div>
+        )
+    }
 }
 
 class SorobanGame extends React.Component {
@@ -46,6 +50,7 @@ class SorobanGame extends React.Component {
 				console.log("Advancing from PLAYING state...");
 				// stops flashing, show full sequence + answer at bottom
 				this.setState({state : 'READY'});
+                this.displayResult();	
 				break;
 		}
     }
@@ -63,15 +68,16 @@ class SorobanGame extends React.Component {
 			this.beepSound.play();
 			setTimeout(() => {this.setState({currDisplay: ""});}, displayTime);
 			await this.sleep(timePerNumber);
-			if (this.state.state === "READY") {
+			if (this.state.state !== "PLAYING") {
 				// user canceled current game -- abort flashing!
 				console.log("breaking...");
-				break;
+				return;
 			}
 		}
 		console.log("Done!");
-		this.setState({state : 'READY'});
-		this.displayResult();	
+        if (this.state.state === "PLAYING") {
+            this.advanceState();
+        }
 	}
 
 	displayResult() {
