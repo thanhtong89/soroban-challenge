@@ -42,7 +42,6 @@
     width: 100%;
 	text-align: center;
 	margin: auto;
-	border : 3px solid black;
     font-size: calc(100px + 20vmin);
 }
 
@@ -51,4 +50,10 @@
     font-size: 300%;
     background: #ed5565;
     color: white;
+}
+
+.settings {
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }

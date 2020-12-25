@@ -17,10 +17,10 @@ class SorobanGame extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            numCount: 10,
-            numDigits: 2,
-            numbers : null,
+            numCount: 5,
+            numDigits: 1,
             total_ms: 10000,
+            numbers : null,
             currDisplay: "",
             answer : "",
             // READY -> PLAYING -> ANSWER -> READY. Transition via spacebar.
@@ -32,10 +32,27 @@ class SorobanGame extends React.Component {
         this.handleChangeTotalSecs = this.handleChangeTotalSecs.bind(this);
         this.beepSound = new Audio(beep);
     }
+    saveCurrentSettings() {
+        localStorage.setItem("numcount", this.state.numCount);
+        localStorage.setItem("numdigits", this.state.numDigits);
+        localStorage.setItem("total_ms", this.state.total_ms);
+    }
+    loadSavedSettings() {
+        this.setState({
+            numCount: localStorage.getItem("numcount") || 5,
+            numDigits : localStorage.getItem("numdigits") || 1,
+            total_ms: localStorage.getItem("total_ms") || 10000,
+        });
+    }
+    componentDidMount() {
+        this.loadSavedSettings();
+    }
     advanceState() {
         switch (this.state.state) {
             case 'READY':
                 console.log(`Advancing from READY state... numCount=${this.state.numCount}`);
+                // saves to local storage our current settings
+                this.saveCurrentSettings();
                 // generates new problem and start flashing
                 const numbers = this.getRandomNumbers(this.state.numCount, this.state.numDigits);
                 this.setState({
@@ -138,18 +155,20 @@ class SorobanGame extends React.Component {
         return (
             <div>
                 <h1>The Soroban Challenge!</h1>
-                <label>
-                    Number count: {this.state.numCount}
-                    <input type="range" min="1" max="100" value={this.state.numCount} onChange={this.handleChangeNumCount}/>
-                </label>
-                <label>
-                    Number of Digits: {this.state.numDigits}
-                    <input type="range" min="1" max="10" value={this.state.numDigits} onChange={this.handleChangeNumDigits}/>
-                </label>
-                <label>
-                    Total time (in seconds): {this.state.total_ms/1000}
-                    <input type="range" min="1" max="30" value={this.state.total_ms / 1000} onChange={this.handleChangeTotalSecs}/>
-                </label>
+                <div className="settings">
+                    <label>
+                        Number count: {this.state.numCount}
+                        <input type="range" min="1" max="100" value={this.state.numCount} onChange={this.handleChangeNumCount}/>
+                    </label>
+                    <label>
+                        Number of Digits: {this.state.numDigits}
+                        <input type="range" min="1" max="10" value={this.state.numDigits} onChange={this.handleChangeNumDigits}/>
+                    </label>
+                    <label>
+                        Total time (in seconds): {this.state.total_ms/1000}
+                        <input type="range" min="1" max="30" value={this.state.total_ms / 1000} onChange={this.handleChangeTotalSecs}/>
+                    </label>
+                </div>
                 <div>
                 <button className="main-button" onClick={this.handleButton}>{buttonTitle}</button>
                 </div>
