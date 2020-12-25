@@ -152,25 +152,41 @@ class SorobanGame extends React.Component {
         if (this.state.state === "PLAYING") {
             buttonTitle = "STOP";
         }
+
+        let numCountOptions = [];
+        for (var i = 1; i < 21; i++) {
+            numCountOptions.push(<option key={i}>{i}</option>)
+        }
+        let numDigitsOptions = [];
+        for (var i = 1; i < 11; i++) {
+            numDigitsOptions.push(<option key={i}>{i}</option>)
+        }
+        let timeSecsOptions = [];
+        for (var i = 1; i < 31; i++) {
+            timeSecsOptions.push(<option key={i}>{i}</option>)
+        }
         return (
             <div>
                 <h1>The Soroban Challenge!</h1>
                 <div className="settings">
-                    <label>
-                        Number count: {this.state.numCount}
-                        <input type="range" min="1" max="100" value={this.state.numCount} onChange={this.handleChangeNumCount}/>
+                    <label>Number count:
+                        <select name="numCount" value={this.state.numCount} onChange={this.handleChangeNumCount}>
+                            {numCountOptions}
+                        </select>
                     </label>
-                    <label>
-                        Number of Digits: {this.state.numDigits}
-                        <input type="range" min="1" max="10" value={this.state.numDigits} onChange={this.handleChangeNumDigits}/>
+                    <label>Number of digits:
+                        <select name="numDigits" value={this.state.numDigits} onChange={this.handleChangeNumDigits}>
+                            {numDigitsOptions}
+                        </select>
                     </label>
-                    <label>
-                        Total time (in seconds): {this.state.total_ms/1000}
-                        <input type="range" min="1" max="30" value={this.state.total_ms / 1000} onChange={this.handleChangeTotalSecs}/>
+                    <label>Total time (secs):
+                        <select name="total_secs" value={this.state.total_ms/1000} onChange={this.handleChangeTotalSecs}>
+                            {timeSecsOptions}
+                        </select>
                     </label>
                 </div>
                 <div>
-                <button className="main-button" onClick={this.handleButton}>{buttonTitle}</button>
+                    <button className="main-button" onClick={this.handleButton}>{buttonTitle}</button>
                 </div>
                 <NumberDisplay value={this.state.currDisplay}/>
                 <div className="answer">{answer}</div>
