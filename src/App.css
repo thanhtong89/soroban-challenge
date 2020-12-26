@@ -38,7 +38,7 @@
 }
 
 .number-display {
-	height: 400px;
+	min-height: 500px;
     width: 100%;
 	text-align: center;
 	margin: auto;
@@ -53,12 +53,16 @@
     color: white;
 }
 
-.settings {
+#settings {
     display: flex;
     flex-flow : wrap;
     justify-content: center;
     align-items: center;
     margin: 10px;
+}
+
+#main-area {
+	height: 80%;
 }
 
 label {

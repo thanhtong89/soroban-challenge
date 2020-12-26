@@ -6,17 +6,10 @@ import beep from "./blip.wav";
 import Speech from 'speak-tts';
 import { Textfit } from 'react-textfit';
 
-const inlineStyle = {
-    height: 600,
-};
-
 class NumberDisplay extends React.Component {
     render() {
         return (
-//            <div>
-//            <p className="number-display">{this.props.value}</p>
-//            </div>
-			<Textfit className="number-display" mode="single" style={inlineStyle} max={500}>
+			<Textfit className="number-display" mode="single" max={400}>
 				{this.props.value}
 			</Textfit>
         )
@@ -42,6 +35,7 @@ class SorobanGame extends React.Component {
 			speechVoiceIndex : "",
         };
         this.handleButton = this.handleButton.bind(this);
+		this.handleKeyPress = this.handleKeyPress.bind(this);
         this.handleChangeNumCount = this.handleChangeNumCount.bind(this);
         this.handleChangeNumDigits = this.handleChangeNumDigits.bind(this);
         this.handleChangeTotalSecs = this.handleChangeTotalSecs.bind(this);
@@ -91,7 +85,11 @@ class SorobanGame extends React.Component {
 			});
 			this.loadSavedSettings();
 		});
+		document.addEventListener("keydown", this.handleKeyPress, false);
     }
+	componentWillUnmount() {
+		document.removeEventListener("keydown", this.handleKeyPress, false);
+	}
     async advanceState() {
 		const epoch = Date.now();
 		console.log("Epoch = ", epoch);
@@ -186,7 +184,12 @@ class SorobanGame extends React.Component {
 			soundOption : event.target.value,
 		});
 	}
-
+	handleKeyPress(event) {
+		console.log(event);
+		if (event.code === "Space" && document.activeElement !== document.getElementById("main-button")) {
+			this.advanceState();
+		}
+	}
     handleButton() {
             this.advanceState();
     }
@@ -268,7 +271,8 @@ class SorobanGame extends React.Component {
      return (
             <div>
                 <h1>The Soroban Challenge!</h1>
-                <div className="settings">
+				<h3>Set up your practice with the options below, then click the Start button or press Spacebar to begin.</h3>
+                <div id="settings">
                     <label>Number count:
                         <select name="numCount" value={this.state.numCount} onChange={this.handleChangeNumCount}>
                             {numCountOptions}
@@ -305,11 +309,13 @@ class SorobanGame extends React.Component {
 							</select>
 					</label>
              </div>
-                <div>
-                    <button className="main-button" disabled={this.state.state === "STOPPING"} onClick={this.handleButton}>{buttonTitle}</button>
-                </div>
-                <NumberDisplay value={this.state.currDisplay}/>
-                <div className="answer">{answer}</div>
+                <div id="main-area">
+					<div>
+						<button id="main-button" className="main-button" disabled={this.state.state === "STOPPING"} onClick={this.handleButton}>{buttonTitle}</button>
+					</div>
+					<NumberDisplay value={this.state.currDisplay}/>
+					<div className="answer">{answer}</div>
+				</div>
             </div>
         );
     }
