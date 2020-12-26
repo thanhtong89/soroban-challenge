@@ -54,6 +54,7 @@
 
 .settings {
     display: flex;
+    flex-flow : wrap;
     justify-content: center;
     align-items: center;
     margin: 10px;
