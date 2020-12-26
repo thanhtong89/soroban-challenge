@@ -42,7 +42,8 @@
     width: 100%;
 	text-align: center;
 	margin: auto;
-    font-size: calc(100px + 20vmin);
+	background: green;
+	color: white;
 }
 
 .main-button {

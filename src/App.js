@@ -4,14 +4,21 @@ import './App.css';
 import UIfx from 'uifx';
 import beep from "./blip.wav";
 import Speech from 'speak-tts';
-import { Mutex } from 'async-mutex';
+import { Textfit } from 'react-textfit';
+
+const inlineStyle = {
+    height: 600,
+};
 
 class NumberDisplay extends React.Component {
     render() {
         return (
-            <div>
-            <p className="number-display">{this.props.value}</p>
-            </div>
+//            <div>
+//            <p className="number-display">{this.props.value}</p>
+//            </div>
+			<Textfit className="number-display" mode="single" style={inlineStyle} max={500}>
+				{this.props.value}
+			</Textfit>
         )
     }
 }
@@ -26,9 +33,10 @@ class SorobanGame extends React.Component {
             numbers : null,
             currDisplay: "",
             answer : "",
-            // READY -> PLAYING -> ANSWER -> READY. Transition via spacebar.
+            // READY -> PLAYING -> STOPPING -> READY
             state : "READY",
-			
+			epoch: 0,
+
 			soundOption: "beep", // choose between "beep" and "tts"
 			speechRate: 1,
 			speechVoiceIndex : "",
@@ -54,7 +62,6 @@ class SorobanGame extends React.Component {
 			console.log("Got error initializing speech: ", error);
 		}
 		this.availableVoices = [];
-		this.mutex = new Mutex();
     }
     saveCurrentSettings() {
         localStorage.setItem("numcount", this.state.numCount);
@@ -86,7 +93,8 @@ class SorobanGame extends React.Component {
 		});
     }
     async advanceState() {
-		var release = null;
+		const epoch = Date.now();
+		console.log("Epoch = ", epoch);
         switch (this.state.state) {
             case 'READY':
                 console.log(`Advancing from READY state... numCount=${this.state.numCount}`);
@@ -98,13 +106,11 @@ class SorobanGame extends React.Component {
                     state : 'PLAYING',
                     numbers : numbers,
                     answer : "",
+					epoch: epoch,
                 });
-				// grabs lock while we flash
-				release = await this.mutex.acquire();	
-                await this.startFlash(this.state.total_ms, numbers);
-				release();
+                await this.startFlash(this.state.total_ms, numbers, epoch);
 				// go forth back to READY state again
-				if (this.state.state === "PLAYING") {
+				if (this.state.state === "PLAYING" && epoch === this.state.epoch) {
 					// this happens when user lets the displaying sequence finish on its own
 					// so we automatically kick in the next state of the game.
 					this.advanceState();
@@ -112,25 +118,14 @@ class SorobanGame extends React.Component {
                 break;
             case 'PLAYING':
                 console.log("Advancing from PLAYING state...");
-				// disables button until we've finished up the current display procedure
-                // stops flashing, show full sequence + answer at bottom
-				this.setState({
-					state: "STOPPING",
-				});
-				console.log("Waiting to grab lock now that we've issued STOP");
-				release = await this.mutex.acquire();	
-                this.displayResult();    
+                this.displayResult();
 				this.setState({
 					state: "READY",
+					epoch: epoch,
 				});
 				console.log("BACK to ready");
 
-				release();
                 break;
-			case 'STOPPING':
-				// we do not expect to call this function while in STOPPING state.
-				// the only time we're in STOPPING state is when we're in PLAYING and need a waiting state to stop flashing.
-				break;
             default:
                 break;
         }
@@ -140,11 +135,11 @@ class SorobanGame extends React.Component {
       return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    async startFlash(total_ms, numbers) {
+    async startFlash(total_ms, numbers, epoch) {
 		// grabs lock to indicate we're displaying the current problem
-        console.log(`Starting Flashing with delay ${total_ms} and numbers ${numbers}`);
+        console.log(`Starting Flashing with delay ${total_ms} and numbers ${numbers} at epoch ${epoch}`);
         const timePerNumber = total_ms / numbers.length;
-        const displayTime = timePerNumber * 0.9
+        const displayTime = timePerNumber * 0.9;
 		this.speech.setRate(this.state.speechRate);
 
 		const voice = this.availableVoices[this.state.speechVoiceIndex];
@@ -152,7 +147,7 @@ class SorobanGame extends React.Component {
 		this.speech.setVoice(voice.name);
         for (var number of numbers) {
             this.setState({currDisplay : number});
-			if (this.state.soundOption === "beep") {	
+			if (this.state.soundOption === "beep") {
 				this.beepSound.play();
 			} else {
 				//TODO: figure out correct speech rate to be able to fit into the alloted time per number
@@ -166,7 +161,9 @@ class SorobanGame extends React.Component {
 			}
             setTimeout(() => {this.setState({currDisplay: ""});}, displayTime);
             await this.sleep(timePerNumber);
-            if (this.state.state === "STOPPING") {
+			// stop this run if we noticed that a new game has started
+			console.log(epoch, " vs ", this.state.epoch);
+            if (epoch < this.state.epoch) {
                 // user canceled current game -- abort flashing!
                 console.log("breaking...");
                 break;
@@ -193,7 +190,7 @@ class SorobanGame extends React.Component {
     handleButton() {
             this.advanceState();
     }
-    
+
     getRandomInt(max) {
         return Math.floor(Math.random() * max)
     }
@@ -216,7 +213,7 @@ class SorobanGame extends React.Component {
     handleChangeNumCount(event) {
         this.setState({
             numCount : event.target.value,
-        });    
+        });
     }
     handleChangeNumDigits(event) {
         this.setState({
