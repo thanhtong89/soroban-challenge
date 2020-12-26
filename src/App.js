@@ -32,7 +32,6 @@ class SorobanGame extends React.Component {
 			soundOption: "beep", // choose between "beep" and "tts"
 			speechRate: 1,
 			speechVoiceIndex : "",
-			disableButton: false,
         };
         this.handleButton = this.handleButton.bind(this);
         this.handleChangeNumCount = this.handleChangeNumCount.bind(this);
@@ -87,6 +86,7 @@ class SorobanGame extends React.Component {
 		});
     }
     async advanceState() {
+		var release = null;
         switch (this.state.state) {
             case 'READY':
                 console.log(`Advancing from READY state... numCount=${this.state.numCount}`);
@@ -99,21 +99,38 @@ class SorobanGame extends React.Component {
                     numbers : numbers,
                     answer : "",
                 });
-                this.startFlash(this.state.total_ms, numbers);
+				// grabs lock while we flash
+				release = await this.mutex.acquire();	
+                await this.startFlash(this.state.total_ms, numbers);
+				release();
+				// go forth back to READY state again
+				if (this.state.state === "PLAYING") {
+					// this happens when user lets the displaying sequence finish on its own
+					// so we automatically kick in the next state of the game.
+					this.advanceState();
+				}
                 break;
             case 'PLAYING':
                 console.log("Advancing from PLAYING state...");
 				// disables button until we've finished up the current display procedure
                 // stops flashing, show full sequence + answer at bottom
 				this.setState({
-					disableButton : true,
-					state : "READY",
+					state: "STOPPING",
 				});
-				const release = await this.mutex.acquire();	
+				console.log("Waiting to grab lock now that we've issued STOP");
+				release = await this.mutex.acquire();	
                 this.displayResult();    
+				this.setState({
+					state: "READY",
+				});
+				console.log("BACK to ready");
+
 				release();
-				this.setState({disableButton: false});
                 break;
+			case 'STOPPING':
+				// we do not expect to call this function while in STOPPING state.
+				// the only time we're in STOPPING state is when we're in PLAYING and need a waiting state to stop flashing.
+				break;
             default:
                 break;
         }
@@ -125,7 +142,6 @@ class SorobanGame extends React.Component {
 
     async startFlash(total_ms, numbers) {
 		// grabs lock to indicate we're displaying the current problem
-		const release = await this.mutex.acquire();
         console.log(`Starting Flashing with delay ${total_ms} and numbers ${numbers}`);
         const timePerNumber = total_ms / numbers.length;
         const displayTime = timePerNumber * 0.9
@@ -150,17 +166,13 @@ class SorobanGame extends React.Component {
 			}
             setTimeout(() => {this.setState({currDisplay: ""});}, displayTime);
             await this.sleep(timePerNumber);
-            if (this.state.state !== "PLAYING") {
+            if (this.state.state === "STOPPING") {
                 // user canceled current game -- abort flashing!
                 console.log("breaking...");
                 break;
             }
         }
         console.log("Done!");
-		release();
-        if (this.state.state === "PLAYING") {
-            this.advanceState();
-        }
     }
 
     displayResult() {
@@ -231,7 +243,9 @@ class SorobanGame extends React.Component {
         let buttonTitle = "PLAY!";
         if (this.state.state === "PLAYING") {
             buttonTitle = "STOP";
-        }
+        } else if (this.state.state === "STOPPING") {
+			buttonTitle = "STOPPING...";
+		}
 
         let numCountOptions = [];
         for (var i = 1; i < 21; i++) {
@@ -246,7 +260,7 @@ class SorobanGame extends React.Component {
             timeSecsOptions.push(<option key={i}>{i}</option>)
         }
 		let speechRateOptions = [];
-        for (i = 0; i < 9; i++) {
+        for (i = 0; i < 17; i++) {
             speechRateOptions.push(<option key={1 + 0.25*i}>{1 + 0.25*i}</option>)
         }
    		let speechVoiceOptions = [];
@@ -295,7 +309,7 @@ class SorobanGame extends React.Component {
 					</label>
              </div>
                 <div>
-                    <button className="main-button" disabled={this.state.disableButton} onClick={this.handleButton}>{buttonTitle}</button>
+                    <button className="main-button" disabled={this.state.state === "STOPPING"} onClick={this.handleButton}>{buttonTitle}</button>
                 </div>
                 <NumberDisplay value={this.state.currDisplay}/>
                 <div className="answer">{answer}</div>
