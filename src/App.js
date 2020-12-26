@@ -1,7 +1,8 @@
 import React from 'react';
 import { format } from 'react-string-format';
 import './App.css';
-import beep from "./beep.mp3";
+import UIfx from 'uifx';
+import beep from "./blip.wav";
 import Speech from 'speak-tts';
 
 class NumberDisplay extends React.Component {
@@ -38,7 +39,13 @@ class SorobanGame extends React.Component {
         this.handleChangeSoundOption = this.handleChangeSoundOption.bind(this);
         this.handleChangeSpeechRate = this.handleChangeSpeechRate.bind(this);
         this.handleChangeSpeechVoice = this.handleChangeSpeechVoice.bind(this);
-        this.beepSound = new Audio(beep);
+        this.beepSound = new UIfx (
+			beep,
+			{
+				volume : 1,
+				throttleMs: 20,
+			}
+		);
 		this.speech = null;
 		try {
 			this.speech = new Speech()
