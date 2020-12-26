@@ -29,6 +29,7 @@ class SorobanGame extends React.Component {
 			
 			soundOption: "beep", // choose between "beep" and "tts"
 			speechRate: 1,
+			speechVoice : "",
         };
         this.handleButton = this.handleButton.bind(this);
         this.handleChangeNumCount = this.handleChangeNumCount.bind(this);
@@ -36,8 +37,15 @@ class SorobanGame extends React.Component {
         this.handleChangeTotalSecs = this.handleChangeTotalSecs.bind(this);
         this.handleChangeSoundOption = this.handleChangeSoundOption.bind(this);
         this.handleChangeSpeechRate = this.handleChangeSpeechRate.bind(this);
+        this.handleChangeSpeechVoice = this.handleChangeSpeechVoice.bind(this);
         this.beepSound = new Audio(beep);
-		this.speech = new Speech()
+		this.speech = null;
+		try {
+			this.speech = new Speech()
+		} catch(error) {
+			console.log("Got error initializing speech: ", error);
+		}
+		this.availableVoices = [];
     }
     saveCurrentSettings() {
         localStorage.setItem("numcount", this.state.numCount);
@@ -45,6 +53,7 @@ class SorobanGame extends React.Component {
         localStorage.setItem("total_ms", this.state.total_ms);
         localStorage.setItem("soundOption", this.state.soundOption);
         localStorage.setItem("speechRate", this.state.speechRate);
+        localStorage.setItem("speechVoice", this.state.speechVoice);
     }
     loadSavedSettings() {
         this.setState({
@@ -53,14 +62,19 @@ class SorobanGame extends React.Component {
             total_ms: localStorage.getItem("total_ms") || 10000,
             soundOption: localStorage.getItem("soundOption") || "beep",
             speechRate: localStorage.getItem("speechRate") || 1,
+            speechVoice: localStorage.getItem("speechVoice") || this.availableVoices[0].name,
         });
     }
     componentDidMount() {
 		this.speech.init({
 			'volume' : '1',
 			'language' : 'en-GB',
-		})
-        this.loadSavedSettings();
+		}).then(data => {
+			data.voices.forEach( voice => {
+				this.availableVoices.push(voice);
+			});
+			this.loadSavedSettings();
+		});
     }
     advanceState() {
         switch (this.state.state) {
@@ -98,7 +112,7 @@ class SorobanGame extends React.Component {
         const timePerNumber = total_ms / numbers.length;
         const displayTime = timePerNumber * 0.9
 		this.speech.setRate(this.state.speechRate);
-		this.speech.setVoice("Karen");
+		this.speech.setVoice(this.state.speechVoice);
         for (var number of numbers) {
             this.setState({currDisplay : number});
 			if (this.state.soundOption === "beep") {	
@@ -185,6 +199,11 @@ class SorobanGame extends React.Component {
             speechRate: event.target.value,
         });
 	}
+	handleChangeSpeechVoice(event) {
+        this.setState({
+            speechVoice: event.target.options[event.target.selectedIndex].value,
+        });
+	}
  render() {
         const answer = this.state.answer;
         let buttonTitle = "PLAY!";
@@ -208,7 +227,11 @@ class SorobanGame extends React.Component {
         for (i = 0; i < 9; i++) {
             speechRateOptions.push(<option key={1 + 0.25*i}>{1 + 0.25*i}</option>)
         }
-        return (
+   		let speechVoiceOptions = [];
+        this.availableVoices.forEach(voice => {
+            speechVoiceOptions.push(<option key={voice.name} value={voice.name}>{voice.name} ({voice.lang})</option>)
+        })
+     return (
             <div>
                 <h1>The Soroban Challenge!</h1>
                 <div className="settings">
@@ -233,7 +256,7 @@ class SorobanGame extends React.Component {
 							beep
 						</label>
 						<label>
-							<input type="radio" value="speech" checked={this.state.soundOption === "speech"} onChange={this.handleChangeSoundOption}/>
+							<input type="radio" value="speech" disabled={this.speech === null} checked={this.state.soundOption === "speech"} onChange={this.handleChangeSoundOption}/>
 							speech
 						</label>
 					</div>
@@ -242,7 +265,12 @@ class SorobanGame extends React.Component {
 							{speechRateOptions}
 							</select>
 					</label>
-                </div>
+   					<label>Speech voice:
+							<select name="speechVoice" value={this.state.speechVoice} onChange={this.handleChangeSpeechVoice}>
+							{speechVoiceOptions}
+							</select>
+					</label>
+             </div>
                 <div>
                     <button className="main-button" onClick={this.handleButton}>{buttonTitle}</button>
                 </div>
