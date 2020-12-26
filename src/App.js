@@ -2,6 +2,7 @@ import React from 'react';
 import { format } from 'react-string-format';
 import './App.css';
 import beep from "./beep.mp3";
+import Speech from 'speak-tts';
 
 class NumberDisplay extends React.Component {
     render() {
@@ -25,26 +26,40 @@ class SorobanGame extends React.Component {
             answer : "",
             // READY -> PLAYING -> ANSWER -> READY. Transition via spacebar.
             state : "READY",
+			
+			soundOption: "beep", // choose between "beep" and "tts"
+			speechRate: 1,
         };
         this.handleButton = this.handleButton.bind(this);
         this.handleChangeNumCount = this.handleChangeNumCount.bind(this);
         this.handleChangeNumDigits = this.handleChangeNumDigits.bind(this);
         this.handleChangeTotalSecs = this.handleChangeTotalSecs.bind(this);
+        this.handleChangeSoundOption = this.handleChangeSoundOption.bind(this);
+        this.handleChangeSpeechRate = this.handleChangeSpeechRate.bind(this);
         this.beepSound = new Audio(beep);
+		this.speech = new Speech()
     }
     saveCurrentSettings() {
         localStorage.setItem("numcount", this.state.numCount);
         localStorage.setItem("numdigits", this.state.numDigits);
         localStorage.setItem("total_ms", this.state.total_ms);
+        localStorage.setItem("soundOption", this.state.soundOption);
+        localStorage.setItem("speechRate", this.state.speechRate);
     }
     loadSavedSettings() {
         this.setState({
             numCount: localStorage.getItem("numcount") || 5,
             numDigits : localStorage.getItem("numdigits") || 1,
             total_ms: localStorage.getItem("total_ms") || 10000,
+            soundOption: localStorage.getItem("soundOption") || "beep",
+            speechRate: localStorage.getItem("speechRate") || 1,
         });
     }
     componentDidMount() {
+		this.speech.init({
+			'volume' : '1',
+			'language' : 'en-GB',
+		})
         this.loadSavedSettings();
     }
     advanceState() {
@@ -82,9 +97,22 @@ class SorobanGame extends React.Component {
         console.log(`Starting Flashing with delay ${total_ms} and numbers ${numbers}`);
         const timePerNumber = total_ms / numbers.length;
         const displayTime = timePerNumber * 0.9
+		this.speech.setRate(this.state.speechRate);
+		this.speech.setVoice("Karen");
         for (var number of numbers) {
             this.setState({currDisplay : number});
-            this.beepSound.play();
+			if (this.state.soundOption === "beep") {	
+				this.beepSound.play();
+			} else {
+				//TODO: figure out correct speech rate to be able to fit into the alloted time per number
+				this.speech
+					.speak({text: number.toString()})
+					.then(data => {
+						console.log("Got data ", data);
+					}).catch(e => {
+						console.log("Got error", e);
+					});
+			}
             setTimeout(() => {this.setState({currDisplay: ""});}, displayTime);
             await this.sleep(timePerNumber);
             if (this.state.state !== "PLAYING") {
@@ -107,6 +135,12 @@ class SorobanGame extends React.Component {
             currDisplay : "",
         });
     }
+
+	handleChangeSoundOption(event) {
+		this.setState({
+			soundOption : event.target.value,
+		});
+	}
 
     handleButton() {
             this.advanceState();
@@ -146,6 +180,11 @@ class SorobanGame extends React.Component {
             total_ms: event.target.value*1000,
         });
     }
+	handleChangeSpeechRate(event) {
+        this.setState({
+            speechRate: event.target.value,
+        });
+	}
  render() {
         const answer = this.state.answer;
         let buttonTitle = "PLAY!";
@@ -158,12 +197,16 @@ class SorobanGame extends React.Component {
             numCountOptions.push(<option key={i}>{i}</option>)
         }
         let numDigitsOptions = [];
-        for (var i = 1; i < 11; i++) {
+        for (i = 1; i < 11; i++) {
             numDigitsOptions.push(<option key={i}>{i}</option>)
         }
         let timeSecsOptions = [];
-        for (var i = 1; i < 31; i++) {
+        for (i = 1; i < 31; i++) {
             timeSecsOptions.push(<option key={i}>{i}</option>)
+        }
+		let speechRateOptions = [];
+        for (i = 0; i < 9; i++) {
+            speechRateOptions.push(<option key={1 + 0.25*i}>{1 + 0.25*i}</option>)
         }
         return (
             <div>
@@ -184,6 +227,21 @@ class SorobanGame extends React.Component {
                             {timeSecsOptions}
                         </select>
                     </label>
+					<div className="sound-options">Sound option:
+						<label>
+							<input type="radio" value="beep" checked={this.state.soundOption === "beep"} onChange={this.handleChangeSoundOption}/>
+							beep
+						</label>
+						<label>
+							<input type="radio" value="speech" checked={this.state.soundOption === "speech"} onChange={this.handleChangeSoundOption}/>
+							speech
+						</label>
+					</div>
+					<label>Speech rate:
+							<select name="speechRate" value={this.state.speechRate} onChange={this.handleChangeSpeechRate}>
+							{speechRateOptions}
+							</select>
+					</label>
                 </div>
                 <div>
                     <button className="main-button" onClick={this.handleButton}>{buttonTitle}</button>
