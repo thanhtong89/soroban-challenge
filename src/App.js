@@ -4,6 +4,7 @@ import './App.css';
 import UIfx from 'uifx';
 import beep from "./blip.wav";
 import Speech from 'speak-tts';
+import { Mutex } from 'async-mutex';
 
 class NumberDisplay extends React.Component {
     render() {
@@ -31,6 +32,7 @@ class SorobanGame extends React.Component {
 			soundOption: "beep", // choose between "beep" and "tts"
 			speechRate: 1,
 			speechVoiceIndex : "",
+			disableButton: false,
         };
         this.handleButton = this.handleButton.bind(this);
         this.handleChangeNumCount = this.handleChangeNumCount.bind(this);
@@ -53,6 +55,7 @@ class SorobanGame extends React.Component {
 			console.log("Got error initializing speech: ", error);
 		}
 		this.availableVoices = [];
+		this.mutex = new Mutex();
     }
     saveCurrentSettings() {
         localStorage.setItem("numcount", this.state.numCount);
@@ -83,7 +86,7 @@ class SorobanGame extends React.Component {
 			this.loadSavedSettings();
 		});
     }
-    advanceState() {
+    async advanceState() {
         switch (this.state.state) {
             case 'READY':
                 console.log(`Advancing from READY state... numCount=${this.state.numCount}`);
@@ -100,13 +103,19 @@ class SorobanGame extends React.Component {
                 break;
             case 'PLAYING':
                 console.log("Advancing from PLAYING state...");
+				// disables button until we've finished up the current display procedure
                 // stops flashing, show full sequence + answer at bottom
-                this.setState({state : 'READY'});
+				this.setState({
+					disableButton : true,
+					state : "READY",
+				});
+				const release = await this.mutex.acquire();	
                 this.displayResult();    
+				release();
+				this.setState({disableButton: false});
                 break;
             default:
                 break;
-
         }
     }
 
@@ -115,13 +124,14 @@ class SorobanGame extends React.Component {
     }
 
     async startFlash(total_ms, numbers) {
+		// grabs lock to indicate we're displaying the current problem
+		const release = await this.mutex.acquire();
         console.log(`Starting Flashing with delay ${total_ms} and numbers ${numbers}`);
         const timePerNumber = total_ms / numbers.length;
         const displayTime = timePerNumber * 0.9
 		this.speech.setRate(this.state.speechRate);
 
 		const voice = this.availableVoices[this.state.speechVoiceIndex];
-		console.log(voice);
 		this.speech.setLanguage(voice.lang);
 		this.speech.setVoice(voice.name);
         for (var number of numbers) {
@@ -143,10 +153,11 @@ class SorobanGame extends React.Component {
             if (this.state.state !== "PLAYING") {
                 // user canceled current game -- abort flashing!
                 console.log("breaking...");
-                return;
+                break;
             }
         }
         console.log("Done!");
+		release();
         if (this.state.state === "PLAYING") {
             this.advanceState();
         }
@@ -284,7 +295,7 @@ class SorobanGame extends React.Component {
 					</label>
              </div>
                 <div>
-                    <button className="main-button" onClick={this.handleButton}>{buttonTitle}</button>
+                    <button className="main-button" disabled={this.state.disableButton} onClick={this.handleButton}>{buttonTitle}</button>
                 </div>
                 <NumberDisplay value={this.state.currDisplay}/>
                 <div className="answer">{answer}</div>
