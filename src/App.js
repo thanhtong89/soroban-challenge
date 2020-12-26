@@ -30,7 +30,7 @@ class SorobanGame extends React.Component {
 			
 			soundOption: "beep", // choose between "beep" and "tts"
 			speechRate: 1,
-			speechVoice : "",
+			speechVoiceIndex : "",
         };
         this.handleButton = this.handleButton.bind(this);
         this.handleChangeNumCount = this.handleChangeNumCount.bind(this);
@@ -60,7 +60,7 @@ class SorobanGame extends React.Component {
         localStorage.setItem("total_ms", this.state.total_ms);
         localStorage.setItem("soundOption", this.state.soundOption);
         localStorage.setItem("speechRate", this.state.speechRate);
-        localStorage.setItem("speechVoice", this.state.speechVoice);
+        localStorage.setItem("speechVoiceIndex", this.state.speechVoiceIndex);
     }
     loadSavedSettings() {
         this.setState({
@@ -69,7 +69,7 @@ class SorobanGame extends React.Component {
             total_ms: localStorage.getItem("total_ms") || 10000,
             soundOption: localStorage.getItem("soundOption") || "beep",
             speechRate: localStorage.getItem("speechRate") || 1,
-            speechVoice: localStorage.getItem("speechVoice") || this.availableVoices[0].name,
+            speechVoiceIndex: localStorage.getItem("speechVoiceIndex") || this.availableVoices[0].name,
         });
     }
     componentDidMount() {
@@ -119,7 +119,11 @@ class SorobanGame extends React.Component {
         const timePerNumber = total_ms / numbers.length;
         const displayTime = timePerNumber * 0.9
 		this.speech.setRate(this.state.speechRate);
-		this.speech.setVoice(this.state.speechVoice);
+
+		const voice = this.availableVoices[this.state.speechVoiceIndex];
+		console.log(voice);
+		this.speech.setLanguage(voice.lang);
+		this.speech.setVoice(voice.name);
         for (var number of numbers) {
             this.setState({currDisplay : number});
 			if (this.state.soundOption === "beep") {	
@@ -208,7 +212,7 @@ class SorobanGame extends React.Component {
 	}
 	handleChangeSpeechVoice(event) {
         this.setState({
-            speechVoice: event.target.options[event.target.selectedIndex].value,
+            speechVoiceIndex: event.target.value,
         });
 	}
  render() {
@@ -235,9 +239,10 @@ class SorobanGame extends React.Component {
             speechRateOptions.push(<option key={1 + 0.25*i}>{1 + 0.25*i}</option>)
         }
    		let speechVoiceOptions = [];
-        this.availableVoices.forEach(voice => {
-            speechVoiceOptions.push(<option key={voice.name} value={voice.name}>{voice.name} ({voice.lang})</option>)
-        })
+		for (i = 0; i < this.availableVoices.length; i++) {
+        	const voice = this.availableVoices[i];
+            speechVoiceOptions.push(<option key={i} value={i}>{voice.name} ({voice.lang})</option>)
+        }
      return (
             <div>
                 <h1>The Soroban Challenge!</h1>
@@ -273,7 +278,7 @@ class SorobanGame extends React.Component {
 							</select>
 					</label>
    					<label>Speech voice:
-							<select name="speechVoice" value={this.state.speechVoice} onChange={this.handleChangeSpeechVoice}>
+							<select name="speechVoice" value={this.state.speechVoiceIndex} onChange={this.handleChangeSpeechVoice}>
 							{speechVoiceOptions}
 							</select>
 					</label>
