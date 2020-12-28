@@ -16,6 +16,48 @@ class NumberDisplay extends React.Component {
     }
 }
 
+function Settings(props) {
+	return (
+		<div id="settings">
+			<label>Number count:
+				<select name="numCount" value={props.numCount} onChange={props.handleChangeNumCount}>
+					{props.numCountOptions}
+				</select>
+			</label>
+			<label>Number of digits:
+				<select name="numDigits" value={props.numDigits} onChange={props.handleChangeNumDigits}>
+					{props.numDigitsOptions}
+				</select>
+			</label>
+			<label>Total time (secs):
+				<select name="total_secs" value={props.total_ms/1000} onChange={props.handleChangeTotalSecs}>
+					{props.timeSecsOptions}
+				</select>
+			</label>
+			<div className="sound-options">Sound option:
+				<label>
+					<input type="radio" value="beep" checked={props.soundOption === "beep"} onChange={props.handleChangeSoundOption}/>
+					beep
+				</label>
+				<label>
+					<input type="radio" value="speech" disabled={props.speech === null} checked={props.soundOption === "speech"} onChange={props.handleChangeSoundOption}/>
+					speech
+				</label>
+			</div>
+			<label>Speech rate:
+					<select name="speechRate" value={props.speechRate} onChange={props.handleChangeSpeechRate}>
+					{props.speechRateOptions}
+					</select>
+			</label>
+			<label>Speech voice:
+					<select name="speechVoice" value={props.speechVoiceIndex} onChange={props.handleChangeSpeechVoice}>
+					{props.speechVoiceOptions}
+					</select>
+			</label>
+	 </div>
+	)
+}
+
 class SorobanGame extends React.Component {
     constructor(props) {
         super(props);
@@ -92,7 +134,6 @@ class SorobanGame extends React.Component {
 	}
     async advanceState() {
 		const epoch = Date.now();
-		console.log("Epoch = ", epoch);
         switch (this.state.state) {
             case 'READY':
                 console.log(`Advancing from READY state... numCount=${this.state.numCount}`);
@@ -268,47 +309,32 @@ class SorobanGame extends React.Component {
         	const voice = this.availableVoices[i];
             speechVoiceOptions.push(<option key={i} value={i}>{voice.name} ({voice.lang})</option>)
         }
+		const renderSettings = () => {
+		return (<Settings
+			numCount={this.state.numCount}
+			handleChangeNumCount={this.handleChangeNumCount}
+			numCountOptions={numCountOptions}
+			numDigits={this.state.numDigits}
+			handleChangeNumDigits={this.handleChangeNumDigits}
+			numDigitsOptions={numDigitsOptions}
+			total_ms={this.state.total_ms}
+			handleChangeTotalSecs={this.handleChangeTotalSecs}
+			timeSecsOptions={timeSecsOptions}
+			soundOption={this.state.soundOption}
+			handleChangeSoundOption={this.handleChangeSoundOption}
+			speechRate={this.state.speechRate}
+			handleChangeSpeechRate={this.handleChangeSpeechRate}
+			speechRateOptions={speechRateOptions}
+			speechVoiceIndex={this.state.speechVoiceIndex}
+			handleChangeSpeechVoice={this.handleChangeSpeechVoice}
+			speechVoiceOptions={speechVoiceOptions}
+		/>);
+		}
      return (
             <div>
                 <h1>The Soroban Challenge!</h1>
 				<h3>Set up your practice with the options below, then click the Start button or press Spacebar to begin.</h3>
-                <div id="settings">
-                    <label>Number count:
-                        <select name="numCount" value={this.state.numCount} onChange={this.handleChangeNumCount}>
-                            {numCountOptions}
-                        </select>
-                    </label>
-                    <label>Number of digits:
-                        <select name="numDigits" value={this.state.numDigits} onChange={this.handleChangeNumDigits}>
-                            {numDigitsOptions}
-                        </select>
-                    </label>
-                    <label>Total time (secs):
-                        <select name="total_secs" value={this.state.total_ms/1000} onChange={this.handleChangeTotalSecs}>
-                            {timeSecsOptions}
-                        </select>
-                    </label>
-					<div className="sound-options">Sound option:
-						<label>
-							<input type="radio" value="beep" checked={this.state.soundOption === "beep"} onChange={this.handleChangeSoundOption}/>
-							beep
-						</label>
-						<label>
-							<input type="radio" value="speech" disabled={this.speech === null} checked={this.state.soundOption === "speech"} onChange={this.handleChangeSoundOption}/>
-							speech
-						</label>
-					</div>
-					<label>Speech rate:
-							<select name="speechRate" value={this.state.speechRate} onChange={this.handleChangeSpeechRate}>
-							{speechRateOptions}
-							</select>
-					</label>
-   					<label>Speech voice:
-							<select name="speechVoice" value={this.state.speechVoiceIndex} onChange={this.handleChangeSpeechVoice}>
-							{speechVoiceOptions}
-							</select>
-					</label>
-             </div>
+				{renderSettings()}
                 <div id="main-area">
 					<div>
 						<button id="main-button" className="main-button" disabled={this.state.state === "STOPPING"} onClick={this.handleButton}>{buttonTitle}</button>
