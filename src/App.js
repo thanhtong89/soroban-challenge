@@ -54,6 +54,17 @@ function Settings(props) {
 					{props.speechVoiceOptions}
 					</select>
 			</label>
+		<div className="mode-options">Game mode:
+				<label>
+					<input type="radio" value="practice" checked={props.gameMode === "practice"} onChange={props.handleChangeModeOption}/>
+					practice
+				</label>
+				<label>
+					<input type="radio" value="tournament" checked={props.gameMode === "tournament"} onChange={props.handleChangeModeOption}/>
+					tournament
+				</label>
+			</div>
+
 	 </div>
 	)
 }
@@ -75,7 +86,14 @@ class SorobanGame extends React.Component {
 			soundOption: "beep", // choose between "beep" and "tts"
 			speechRate: 1,
 			speechVoiceIndex : "",
+
+            mode : "practice", // PRACTICE | TOURNAMENT
+            //tournament-only variables
+            round : 0,
+            score : 0,
+            scorePerRound : 5, // calculated dynamically from other factors
         };
+        this.roundMax = 3;
         this.handleButton = this.handleButton.bind(this);
 		this.handleKeyPress = this.handleKeyPress.bind(this);
         this.handleChangeNumCount = this.handleChangeNumCount.bind(this);
@@ -84,6 +102,7 @@ class SorobanGame extends React.Component {
         this.handleChangeSoundOption = this.handleChangeSoundOption.bind(this);
         this.handleChangeSpeechRate = this.handleChangeSpeechRate.bind(this);
         this.handleChangeSpeechVoice = this.handleChangeSpeechVoice.bind(this);
+        this.handleChangeModeOption = this.handleChangeModeOption.bind(this);
         this.beepSound = new UIfx (
 			beep,
 			{
@@ -94,9 +113,7 @@ class SorobanGame extends React.Component {
 		this.speech = null;
 		try {
 			this.speech = new Speech()
-		} catch(error) {
-			console.log("Got error initializing speech: ", error);
-		}
+		} catch(error) { console.log("Got error initializing speech: ", error); }
 		this.availableVoices = [];
     }
     saveCurrentSettings() {
@@ -106,6 +123,7 @@ class SorobanGame extends React.Component {
         localStorage.setItem("soundOption", this.state.soundOption);
         localStorage.setItem("speechRate", this.state.speechRate);
         localStorage.setItem("speechVoiceIndex", this.state.speechVoiceIndex);
+        localStorage.setItem("mode", this.state.mode);
     }
     loadSavedSettings() {
         this.setState({
@@ -115,7 +133,8 @@ class SorobanGame extends React.Component {
             soundOption: localStorage.getItem("soundOption") || "beep",
             speechRate: localStorage.getItem("speechRate") || 1,
             speechVoiceIndex: localStorage.getItem("speechVoiceIndex") || this.availableVoices[0].name,
-        });
+            mode : localStorage.getItem("mode") || "practice",
+        }, this.updateScorePerRound);
     }
     componentDidMount() {
 		this.speech.init({
@@ -132,42 +151,101 @@ class SorobanGame extends React.Component {
 	componentWillUnmount() {
 		document.removeEventListener("keydown", this.handleKeyPress, false);
 	}
-    async advanceState() {
-		const epoch = Date.now();
+
+    transition(epoch) {
+        var newState = null;
+        console.log(`Transitioning from state ${this.state.state} at epoch ${epoch}`);
         switch (this.state.state) {
             case 'READY':
-                console.log(`Advancing from READY state... numCount=${this.state.numCount}`);
-                // saves to local storage our current settings
-                this.saveCurrentSettings();
+                if (this.state.mode === "practice") {
+                    newState = "PLAYING";
+                } else {
+                    newState = "PLAYING_TOURNAMENT";
+                }
+            break;
+            case 'PLAYING':
+                newState = "READY";
+            break;
+            case 'PLAYING_TOURNAMENT':
+                newState = "READY";
+            break;
+            default:
+                console.log(`INVALID state! ${this.state.state}`);
+                return;
+        }
+        this.setState({
+            state : newState,
+            epoch : epoch,
+        });
+        console.log(`State being set to ${newState}`);
+        this.handleState(newState, epoch);
+
+    }
+
+    async handleState(state, epoch) {
+        console.log(`Handle State ${state} at epoch ${epoch}`);
+        switch (state) {
+            case 'READY':
+            break;
+            case 'PLAYING':
+                this.setState({
+                    answer : "",
+                });
+
                 // generates new problem and start flashing
                 const numbers = this.getRandomNumbers(this.state.numCount, this.state.numDigits);
-                this.setState({
-                    state : 'PLAYING',
-                    numbers : numbers,
-                    answer : "",
-					epoch: epoch,
-                });
                 await this.startFlash(this.state.total_ms, numbers, epoch);
-				// go forth back to READY state again
-				if (this.state.state === "PLAYING" && epoch === this.state.epoch) {
-					// this happens when user lets the displaying sequence finish on its own
-					// so we automatically kick in the next state of the game.
-					this.advanceState();
-				}
+                if (this.state.state === "PLAYING" && epoch === this.state.epoch) {
+                    this.displayResult(numbers);
+                    this.transition(epoch);
+                }
                 break;
-            case 'PLAYING':
-                console.log("Advancing from PLAYING state...");
-                this.displayResult();
-				this.setState({
-					state: "READY",
-					epoch: epoch,
-				});
-				console.log("BACK to ready");
+            case 'PLAYING_TOURNAMENT':
+                this.setState({
+                    round : 0,
+                    score : 0,
+                });
+                var score = 0;
+                for (var i = 1; i <= this.roundMax; i++) {
+                    console.log(`Round ${i}`);
+                    epoch = Date.now();
+                    const numbers = this.getRandomNumbers(this.state.numCount, this.state.numDigits);
+                    await this.startFlash(this.state.total_ms, numbers, epoch);
+                    if (epoch < this.state.epoch) {
+                        return;
+                    }
+                    const answer = this.promptAnswer();
+                    const sum = this.getSum(numbers);
+                    if (answer === sum) {
+                        alert("You got it!");
+                        score = score + this.state.scorePerRound;
+                    } else {
+                        const equation = format("{0} = {1}", numbers.join(" + "), sum);
+                        alert(`Sorry -- the correct answer is: ${equation}`);
+                    }
+                    this.setState({
+                        round: i,
+                        score: score,
+                    });
+                }
+                if (epoch >= this.state.epoch) {
+                    console.log("Done with tournament run! Transitioning back");
+                    this.transition(epoch);
+                }
+                break;
 
-                break;
             default:
+                console.log(`Handling invalid state ${this.state.state}`);
                 break;
-        }
+        };
+    }
+
+    updateScorePerRound() {
+        // depending on how hard the current settings are we award the appropriate amount of points
+        const score = Math.pow(this.state.numCount, 1.25) * Math.pow(this.state.numDigits, 1.25) * 10000 / this.state.total_ms;
+        this.setState({
+            scorePerRound: Math.ceil(score),
+        });        
     }
 
     sleep(ms) {
@@ -201,7 +279,6 @@ class SorobanGame extends React.Component {
             setTimeout(() => {this.setState({currDisplay: ""});}, displayTime);
             await this.sleep(timePerNumber);
 			// stop this run if we noticed that a new game has started
-			console.log(epoch, " vs ", this.state.epoch);
             if (epoch < this.state.epoch) {
                 // user canceled current game -- abort flashing!
                 console.log("breaking...");
@@ -211,9 +288,20 @@ class SorobanGame extends React.Component {
         console.log("Done!");
     }
 
-    displayResult() {
+    promptAnswer() {
+        var answer;
+        while (true) {
+            answer = Number(prompt("What is the answer?"));
+            if (!isNaN(answer)) {
+                break;
+            }
+        }
+        return answer;
+    }
+
+    displayResult(numbers) {
         // displays full number list and final result
-        const answer = format("{0} = {1}", this.state.numbers.join(" + "), this.getSum(this.state.numbers));
+        const answer = format("{0} = {1}", numbers.join(" + "), this.getSum(numbers));
         this.setState({
             answer:answer,
             currDisplay : "",
@@ -226,13 +314,14 @@ class SorobanGame extends React.Component {
 		});
 	}
 	handleKeyPress(event) {
-		console.log(event);
 		if (event.code === "Space" && document.activeElement !== document.getElementById("main-button")) {
-			this.advanceState();
+			this.handleButton();
 		}
 	}
     handleButton() {
-            this.advanceState();
+            this.saveCurrentSettings()
+            const epoch = Date.now();
+            this.transition(epoch);
     }
 
     getRandomInt(max) {
@@ -254,20 +343,21 @@ class SorobanGame extends React.Component {
         return numbers
     }
 
+
     handleChangeNumCount(event) {
         this.setState({
             numCount : event.target.value,
-        });
+        }, this.updateScorePerRound);
     }
     handleChangeNumDigits(event) {
         this.setState({
             numDigits: event.target.value,
-        });
+        }, this.updateScorePerRound);
     }
-       handleChangeTotalSecs(event) {
+    handleChangeTotalSecs(event) {
         this.setState({
             total_ms: event.target.value*1000,
-        });
+        }, this.updateScorePerRound);
     }
 	handleChangeSpeechRate(event) {
         this.setState({
@@ -279,17 +369,20 @@ class SorobanGame extends React.Component {
             speechVoiceIndex: event.target.value,
         });
 	}
+    handleChangeModeOption(event) {
+        this.setState({
+            mode : event.target.value,
+        });
+    }
  render() {
         const answer = this.state.answer;
         let buttonTitle = "PLAY!";
-        if (this.state.state === "PLAYING") {
+        if (this.state.state !== "READY") {
             buttonTitle = "STOP";
-        } else if (this.state.state === "STOPPING") {
-			buttonTitle = "STOPPING...";
 		}
 
         let numCountOptions = [];
-        for (var i = 1; i < 21; i++) {
+        for (var i = 2; i < 21; i++) {
             numCountOptions.push(<option key={i}>{i}</option>)
         }
         let numDigitsOptions = [];
@@ -328,12 +421,18 @@ class SorobanGame extends React.Component {
 			speechVoiceIndex={this.state.speechVoiceIndex}
 			handleChangeSpeechVoice={this.handleChangeSpeechVoice}
 			speechVoiceOptions={speechVoiceOptions}
+            gameMode={this.state.mode}
+            handleChangeModeOption={this.handleChangeModeOption}
 		/>);
 		}
+        var modeDisplay = "Set up your practice with the options below, then click the Start button or press Spacebar to begin.";
+        if (this.state.mode === "tournament") {
+            modeDisplay = `Tournament (score per round: ${this.state.scorePerRound}): Round ${this.state.round} / ${this.roundMax}. Score: ${this.state.score}`;
+        }
      return (
             <div>
                 <h1>The Soroban Challenge!</h1>
-				<h3>Set up your practice with the options below, then click the Start button or press Spacebar to begin.</h3>
+				<h3>{modeDisplay}</h3>
 				{renderSettings()}
                 <div id="main-area">
 					<div>
