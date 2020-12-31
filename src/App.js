@@ -85,7 +85,7 @@ class SorobanGame extends React.Component {
 
 			soundOption: "beep", // choose between "beep" and "tts"
 			speechRate: 1,
-			speechVoiceIndex : "",
+			speechVoiceIndex : 0,
 
             mode : "practice", // PRACTICE | TOURNAMENT
             //tournament-only variables
@@ -132,7 +132,7 @@ class SorobanGame extends React.Component {
             total_ms: localStorage.getItem("total_ms") || 10000,
             soundOption: localStorage.getItem("soundOption") || "beep",
             speechRate: localStorage.getItem("speechRate") || 1,
-            speechVoiceIndex: localStorage.getItem("speechVoiceIndex") || this.availableVoices[0].name,
+            speechVoiceIndex: localStorage.getItem("speechVoiceIndex") || 0,
             mode : localStorage.getItem("mode") || "practice",
         }, this.updateScorePerRound);
     }
