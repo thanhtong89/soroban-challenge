@@ -230,6 +230,7 @@ class SorobanGame extends React.Component {
                 }
                 if (epoch >= this.state.epoch) {
                     console.log("Done with tournament run! Transitioning back");
+                    alert(`Your final score is ${score}`);
                     this.transition(epoch);
                 }
                 break;
@@ -242,9 +243,12 @@ class SorobanGame extends React.Component {
 
     updateScorePerRound() {
         // depending on how hard the current settings are we award the appropriate amount of points
-        const score = Math.pow(this.state.numCount, 1.25) * Math.pow(this.state.numDigits, 1.25) * 10000 / this.state.total_ms;
+        const numCountFactor = Math.pow(this.state.numCount, 3)
+        const numDigitsFactor = Math.pow(this.state.numDigits, 2.3)
+        const timeFactor = 1000 / this.state.total_ms;
+        console.log(numCountFactor, numDigitsFactor, timeFactor);
         this.setState({
-            scorePerRound: Math.ceil(score),
+            scorePerRound: Math.ceil(numCountFactor * numDigitsFactor * timeFactor),
         });        
     }
 
@@ -382,7 +386,7 @@ class SorobanGame extends React.Component {
 		}
 
         let numCountOptions = [];
-        for (var i = 2; i < 21; i++) {
+        for (var i = 3; i < 21; i++) {
             numCountOptions.push(<option key={i}>{i}</option>)
         }
         let numDigitsOptions = [];
