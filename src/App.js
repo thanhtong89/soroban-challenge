@@ -40,6 +40,9 @@ function Leaderboard(props) {
 				}
 				</tbody>
 			</table>
+			<label> Enter your name here:
+				<input type="text" value={props.playerName} onChange={props.handleChangePlayerName}/>
+			</label>
 		</div>
 	)
 }
@@ -121,6 +124,7 @@ class SorobanGame extends React.Component {
             score : 0,
             scorePerRound : 5, // calculated dynamically from other factors
 			topScores : [], // tracked by the server, returned when submitting new scores
+			playerName: "groot",
         };
         this.roundMax = 3;
         this.handleButton = this.handleButton.bind(this);
@@ -132,6 +136,8 @@ class SorobanGame extends React.Component {
         this.handleChangeSpeechRate = this.handleChangeSpeechRate.bind(this);
         this.handleChangeSpeechVoice = this.handleChangeSpeechVoice.bind(this);
         this.handleChangeModeOption = this.handleChangeModeOption.bind(this);
+		this.handleChangePlayerName = this.handleChangePlayerName.bind(this);
+
         this.beepSound = new UIfx (
 			beep,
 			{
@@ -153,6 +159,7 @@ class SorobanGame extends React.Component {
         localStorage.setItem("speechRate", this.state.speechRate);
         localStorage.setItem("speechVoiceIndex", this.state.speechVoiceIndex);
         localStorage.setItem("mode", this.state.mode);
+        localStorage.setItem("playerName", this.state.playerName);
     }
     loadSavedSettings() {
         this.setState({
@@ -163,6 +170,7 @@ class SorobanGame extends React.Component {
             speechRate: localStorage.getItem("speechRate") || 1,
             speechVoiceIndex: localStorage.getItem("speechVoiceIndex") || 0,
             mode : localStorage.getItem("mode") || "practice",
+            playerName : localStorage.getItem("playerName") || "groot",
         }, this.updateScorePerRound);
     }
     componentDidMount() {
@@ -296,12 +304,11 @@ class SorobanGame extends React.Component {
 	}
 
     async submitScore(score) {
-        const name = prompt(`Your final score is ${score}. Enter your name for submission to the hall of fame!`);
-            // submit to server
+        alert(`Your score for this tournament run is ${score}!`);
 		const requestOptions = {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({name: name, score: score}),
+			body: JSON.stringify({name: this.state.playerName, score: score}),
 		};
 		var response = await fetch('https://soroban.tongpham.com/api/scores', requestOptions);
 		return response.json();
@@ -389,6 +396,11 @@ class SorobanGame extends React.Component {
 		}
 	}
     handleButton() {
+			// cannot proceed until playerName is filled
+			if (this.state.playerName.length === 0) {
+				alert("Please provide your player name");
+				return;
+			}
             this.saveCurrentSettings()
             const epoch = Date.now();
             this.transition(epoch);
@@ -444,6 +456,12 @@ class SorobanGame extends React.Component {
             mode : event.target.value,
         });
     }
+
+	handleChangePlayerName(event) {
+		this.setState({
+			playerName: event.target.value,
+		})
+	}
  render() {
         const answer = this.state.answer;
         let buttonTitle = "PLAY!";
@@ -505,7 +523,12 @@ class SorobanGame extends React.Component {
             <div>
                 <h1>The Soroban Challenge!</h1>
 				<h3>{modeDisplay}</h3>
-				<Leaderboard style={leaderboardStyle} scores={this.state.topScores}/>
+				<Leaderboard 
+					style={leaderboardStyle}
+					scores={this.state.topScores}
+					playerName={this.state.playerName}
+					handleChangePlayerName={this.handleChangePlayerName}
+				/>
 				{renderSettings()}
                 <div id="main-area">
 					<div>
