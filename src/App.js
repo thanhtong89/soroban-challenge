@@ -46,10 +46,24 @@ function Leaderboard(props) {
 		</div>
 	)
 }
+function GameMode(props) {
+	return (
+		<div className="settings">Game mode:
+			<label>
+				<input type="radio" value="practice" checked={props.gameMode === "practice"} onChange={props.handleChangeModeOption}/>
+				practice
+			</label>
+			<label>
+				<input type="radio" value="tournament" checked={props.gameMode === "tournament"} onChange={props.handleChangeModeOption}/>
+				tournament
+			</label>
+		</div>
+	)
+}
 
 function Settings(props) {
 	return (
-		<div id="settings">
+	<div className="settings">
 			<label>Number count:
 				<select name="numCount" value={props.numCount} onChange={props.handleChangeNumCount}>
 					{props.numCountOptions}
@@ -85,16 +99,6 @@ function Settings(props) {
 					{props.speechVoiceOptions}
 					</select>
 			</label>
-		<div className="mode-options">Game mode:
-				<label>
-					<input type="radio" value="practice" checked={props.gameMode === "practice"} onChange={props.handleChangeModeOption}/>
-					practice
-				</label>
-				<label>
-					<input type="radio" value="tournament" checked={props.gameMode === "tournament"} onChange={props.handleChangeModeOption}/>
-					tournament
-				</label>
-			</div>
 
 	 </div>
 	)
@@ -285,7 +289,7 @@ class SorobanGame extends React.Component {
 		const requestOptions = {
 			method: 'GET',
 		};
-		var response = await fetch('https://soroban.tongpham.com/api/scores', requestOptions);
+		var response = await fetch('http://soroban.tongpham.com/api/scores', requestOptions);
 		return response.json();
 	}
 
@@ -509,8 +513,6 @@ class SorobanGame extends React.Component {
 			speechVoiceIndex={this.state.speechVoiceIndex}
 			handleChangeSpeechVoice={this.handleChangeSpeechVoice}
 			speechVoiceOptions={speechVoiceOptions}
-            gameMode={this.state.mode}
-            handleChangeModeOption={this.handleChangeModeOption}
 		/>);
 		}
         var modeDisplay = "Set up your practice with the options below, then click the Start button or press Spacebar to begin.";
@@ -522,8 +524,12 @@ class SorobanGame extends React.Component {
      return (
             <div>
                 <h1>The Soroban Challenge!</h1>
+				<GameMode
+					gameMode={this.state.mode}
+					handleChangeModeOption={this.handleChangeModeOption}
+				/>
 				<h3>{modeDisplay}</h3>
-				<Leaderboard 
+				<Leaderboard
 					style={leaderboardStyle}
 					scores={this.state.topScores}
 					playerName={this.state.playerName}
