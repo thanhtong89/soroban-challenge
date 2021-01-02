@@ -28,7 +28,7 @@ function Leaderboard(props) {
 				</thead>
 				<tbody>
 				{
-					props.scores.map(scoreEntry  => {
+					props.scores.map(scoreEntry => {
 						const {name, score} = scoreEntry;
 						return (
 							<tr>
@@ -41,7 +41,7 @@ function Leaderboard(props) {
 				</tbody>
 			</table>
 			<label> Enter your name here:
-				<input type="text" value={props.playerName} onChange={props.handleChangePlayerName}/>
+				<input type="text" value={props.playerName} disabled={props.disableValue} onChange={props.handleChangePlayerName}/>
 			</label>
 		</div>
 	)
@@ -528,6 +528,7 @@ class SorobanGame extends React.Component {
 					scores={this.state.topScores}
 					playerName={this.state.playerName}
 					handleChangePlayerName={this.handleChangePlayerName}
+					disableValue={this.state.state === "READY" ? "" : "disabled"}
 				/>
 				{renderSettings()}
                 <div id="main-area">
