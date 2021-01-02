@@ -16,6 +16,34 @@ class NumberDisplay extends React.Component {
     }
 }
 
+function Leaderboard(props) {
+	return  (
+		<div id="leaderboard" style={props.style}>
+			<table id="scoreTable">
+				<thead>
+					<tr>
+						<th>Name</th>
+						<th>Score</th>
+					</tr>
+				</thead>
+				<tbody>
+				{
+					props.scores.map(scoreEntry  => {
+						const {name, score} = scoreEntry;
+						return (
+							<tr>
+								<td>{name}</td>
+								<td>{score}</td>
+							</tr>
+						)
+					})
+				}
+				</tbody>
+			</table>
+		</div>
+	)
+}
+
 function Settings(props) {
 	return (
 		<div id="settings">
@@ -92,6 +120,7 @@ class SorobanGame extends React.Component {
             round : 0,
             score : 0,
             scorePerRound : 5, // calculated dynamically from other factors
+			topScores : [], // tracked by the server, returned when submitting new scores
         };
         this.roundMax = 3;
         this.handleButton = this.handleButton.bind(this);
@@ -147,6 +176,7 @@ class SorobanGame extends React.Component {
 			this.loadSavedSettings();
 		});
 		document.addEventListener("keydown", this.handleKeyPress, false);
+		this.getTopScores().then(latestScores => this.updateTopScores(latestScores));
     }
 	componentWillUnmount() {
 		document.removeEventListener("keydown", this.handleKeyPress, false);
@@ -230,7 +260,9 @@ class SorobanGame extends React.Component {
                 }
                 if (epoch >= this.state.epoch) {
                     console.log("Done with tournament run! Transitioning back");
-                    alert(`Your final score is ${score}`);
+                    const scoreData = await this.submitScore(score);
+					console.log("Current top scores: ", scoreData);
+					this.updateTopScores(scoreData);
                     this.transition(epoch);
                 }
                 break;
@@ -241,6 +273,40 @@ class SorobanGame extends React.Component {
         };
     }
 
+	async getTopScores() {
+		const requestOptions = {
+			method: 'GET',
+		};
+		var response = await fetch('https://soroban.tongpham.com/api/scores', requestOptions);
+		return response.json();
+	}
+
+	updateTopScores(scoreData) {
+		// convert dict into list and sort descending
+		var scoreList = [];
+		for (const [name, score] of Object.entries(scoreData.top_scores)) {
+			scoreList.push({name: name, score: score});
+		}
+		scoreList.sort((a,b) => b.score - a.score);
+		console.log("Setting topScores = ", scoreList);
+		this.setState({
+			topScores: scoreList,
+		});
+
+	}
+
+    async submitScore(score) {
+        const name = prompt(`Your final score is ${score}. Enter your name for submission to the hall of fame!`);
+            // submit to server
+		const requestOptions = {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({name: name, score: score}),
+		};
+		var response = await fetch('https://soroban.tongpham.com/api/scores', requestOptions);
+		return response.json();
+    }
+
     updateScorePerRound() {
         // depending on how hard the current settings are we award the appropriate amount of points
         const numCountFactor = Math.pow(this.state.numCount, 3)
@@ -249,7 +315,7 @@ class SorobanGame extends React.Component {
         console.log(numCountFactor, numDigitsFactor, timeFactor);
         this.setState({
             scorePerRound: Math.ceil(numCountFactor * numDigitsFactor * timeFactor),
-        });        
+        });
     }
 
     sleep(ms) {
@@ -430,13 +496,16 @@ class SorobanGame extends React.Component {
 		/>);
 		}
         var modeDisplay = "Set up your practice with the options below, then click the Start button or press Spacebar to begin.";
+		var leaderboardStyle = {display: "none"};
         if (this.state.mode === "tournament") {
             modeDisplay = `Tournament (score per round: ${this.state.scorePerRound}): Round ${this.state.round} / ${this.roundMax}. Score: ${this.state.score}`;
+			leaderboardStyle = {};
         }
      return (
             <div>
                 <h1>The Soroban Challenge!</h1>
 				<h3>{modeDisplay}</h3>
+				<Leaderboard style={leaderboardStyle} scores={this.state.topScores}/>
 				{renderSettings()}
                 <div id="main-area">
 					<div>
