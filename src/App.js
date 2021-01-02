@@ -18,27 +18,34 @@ class NumberDisplay extends React.Component {
 
 function Leaderboard(props) {
 	return  (
-		<div id="leaderboard" style={props.style}>
+		<div style={props.style}>
 			<table id="scoreTable">
 				<thead>
 					<tr>
 						<th>Name</th>
 						<th>Score</th>
+						<th>Attempts</th>
 					</tr>
 				</thead>
 				<tbody>
 				{
 					props.scores.map(scoreEntry => {
-						const {name, score} = scoreEntry;
+						const {name, score, attempts} = scoreEntry;
 						return (
 							<tr>
 								<td>{name}</td>
 								<td>{score}</td>
+								<td>{attempts}</td>
 							</tr>
 						)
 					})
 				}
 				</tbody>
+				<tfoot>
+					<tr>
+						<th colspan="3">{props.tableName}</th>
+					</tr>
+				</tfoot>
 			</table>
 			<label> Enter your name here:
 				<input type="text" value={props.playerName} disabled={props.disableValue} onChange={props.handleChangePlayerName}/>
@@ -46,6 +53,15 @@ function Leaderboard(props) {
 		</div>
 	)
 }
+
+// displays both previous month's scoreboard and current scoreboard.
+// function Scoreboard(props) {
+// 	return (
+// 		<div style={props.style}> 
+// 		</div>
+// 	)
+// }
+
 function GameMode(props) {
 	return (
 		<div className="settings">Game mode:
@@ -289,16 +305,16 @@ class SorobanGame extends React.Component {
 		const requestOptions = {
 			method: 'GET',
 		};
-		var response = await fetch('http://soroban.tongpham.com/api/scores', requestOptions);
+		var response = await fetch('https://soroban.tongpham.com/api/scores', requestOptions);
 		return response.json();
 	}
 
 	updateTopScores(scoreData) {
 		// convert dict into list and sort descending
 		var scoreList = [];
-		for (const [name, score] of Object.entries(scoreData.top_scores)) {
-			scoreList.push({name: name, score: score});
-		}
+		Object.keys(scoreData.top_scores).forEach(name => {	
+			scoreList.push({name: name, score: scoreData.top_scores[name].score, attempts: scoreData.top_scores[name].attempts});
+		});
 		scoreList.sort((a,b) => b.score - a.score);
 		console.log("Setting topScores = ", scoreList);
 		this.setState({
@@ -535,6 +551,7 @@ class SorobanGame extends React.Component {
 					playerName={this.state.playerName}
 					handleChangePlayerName={this.handleChangePlayerName}
 					disableValue={this.state.state === "READY" ? "" : "disabled"}
+					tableName="current month's top 10"
 				/>
 				{renderSettings()}
                 <div id="main-area">

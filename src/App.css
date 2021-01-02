@@ -53,7 +53,7 @@
     color: white;
 }
 
-#settings {
+.settings {
     display: flex;
     flex-flow : wrap;
     justify-content: center;
