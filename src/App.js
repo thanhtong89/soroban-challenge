@@ -18,7 +18,7 @@ class NumberDisplay extends React.Component {
 
 function Leaderboard(props) {
 	return  (
-		<div style={props.style}>
+		<div style={props.scores !== null && props.scores.length > 0 ? {} : {display: "none"}}>
 			<table id="scoreTable">
 				<thead>
 					<tr>
@@ -47,20 +47,30 @@ function Leaderboard(props) {
 					</tr>
 				</tfoot>
 			</table>
-			<label> Enter your name here:
-				<input type="text" value={props.playerName} disabled={props.disableValue} onChange={props.handleChangePlayerName}/>
-			</label>
 		</div>
 	)
 }
 
 // displays both previous month's scoreboard and current scoreboard.
-// function Scoreboard(props) {
-// 	return (
-// 		<div style={props.style}> 
-// 		</div>
-// 	)
-// }
+function Scoreboard(props) {
+	return (
+ 		<div style={props.style}>
+			<div>
+				<Leaderboard
+					scores={props.prevTopScores}
+					tableName="last month's top 10"
+				/>
+				<Leaderboard
+					scores={props.currTopScores}
+					tableName="current month's top 10"
+				/>
+			</div>
+ 			<label> Enter your name here:
+				<input type="text" value={props.playerName} disabled={props.disableValue} onChange={props.handleChangePlayerName}/>
+			</label>
+		</div>
+ 	)
+}
 
 function GameMode(props) {
 	return (
@@ -312,7 +322,7 @@ class SorobanGame extends React.Component {
 	updateTopScores(scoreData) {
 		// convert dict into list and sort descending
 		var scoreList = [];
-		Object.keys(scoreData.top_scores).forEach(name => {	
+		Object.keys(scoreData.top_scores).forEach(name => {
 			scoreList.push({name: name, score: scoreData.top_scores[name].score, attempts: scoreData.top_scores[name].attempts});
 		});
 		scoreList.sort((a,b) => b.score - a.score);
@@ -532,10 +542,10 @@ class SorobanGame extends React.Component {
 		/>);
 		}
         var modeDisplay = "Set up your practice with the options below, then click the Start button or press Spacebar to begin.";
-		var leaderboardStyle = {display: "none"};
+		var scoreboardStyle = {display: "none"};
         if (this.state.mode === "tournament") {
             modeDisplay = `Tournament (score per round: ${this.state.scorePerRound}): Round ${this.state.round} / ${this.roundMax}. Score: ${this.state.score}`;
-			leaderboardStyle = {};
+			scoreboardStyle = {};
         }
      return (
             <div>
@@ -545,13 +555,13 @@ class SorobanGame extends React.Component {
 					handleChangeModeOption={this.handleChangeModeOption}
 				/>
 				<h3>{modeDisplay}</h3>
-				<Leaderboard
-					style={leaderboardStyle}
-					scores={this.state.topScores}
+				<Scoreboard
+					style={scoreboardStyle}
+					currTopScores={this.state.topScores}
 					playerName={this.state.playerName}
 					handleChangePlayerName={this.handleChangePlayerName}
 					disableValue={this.state.state === "READY" ? "" : "disabled"}
-					tableName="current month's top 10"
+
 				/>
 				{renderSettings()}
                 <div id="main-area">
