@@ -69,11 +69,18 @@ label {
     margin: 10px;
 }
 
-#scoreTable {
-    margin-left: auto;
-    margin-right: auto;
+
+.scoreTable {
+    margin: 20px;
 }
 
+#leaderboards {
+    display: flex;
+    flex-flow : wrap;
+    justify-content: center;
+    align-items: center;
+    margin: 30px;
+}
 table, th, td {
     border: 1px solid black;
     border-collapse: collapse;

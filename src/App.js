@@ -18,8 +18,8 @@ class NumberDisplay extends React.Component {
 
 function Leaderboard(props) {
 	return  (
-		<div style={props.scores !== null && props.scores.length > 0 ? {} : {display: "none"}}>
-			<table id="scoreTable">
+		<div className="scoreTable" style={props.scores !== null && props.scores.length > 0 ? {} : {display: "none"}}>
+			<table>
 				<thead>
 					<tr>
 						<th>Name</th>
@@ -43,7 +43,7 @@ function Leaderboard(props) {
 				</tbody>
 				<tfoot>
 					<tr>
-						<th colspan="3">{props.tableName}</th>
+						<th colSpan="3">{props.tableName}</th>
 					</tr>
 				</tfoot>
 			</table>
@@ -54,8 +54,8 @@ function Leaderboard(props) {
 // displays both previous month's scoreboard and current scoreboard.
 function Scoreboard(props) {
 	return (
- 		<div style={props.style}>
-			<div>
+ 		<div id="scoreboard" style={props.style} vertical layout>
+			<div id="leaderboards">
 				<Leaderboard
 					scores={props.prevTopScores}
 					tableName="last month's top 10"
@@ -67,6 +67,8 @@ function Scoreboard(props) {
 			</div>
  			<label> Enter your name here:
 				<input type="text" value={props.playerName} disabled={props.disableValue} onChange={props.handleChangePlayerName}/>
+			</label>
+			<label> Next scoreboard reset : {props.resetDate}
 			</label>
 		</div>
  	)
@@ -153,8 +155,10 @@ class SorobanGame extends React.Component {
             round : 0,
             score : 0,
             scorePerRound : 5, // calculated dynamically from other factors
-			topScores : [], // tracked by the server, returned when submitting new scores
+			prevTopScores : [{name:"snk", score: 1, attempts: 1}], // tracked by the server
+			topScores : [{name: "moo", score: 2, attempts: 2}], // tracked by the server, returned when submitting new scores
 			playerName: "groot",
+			resetDate : "", // time at which the scoreboard will reset
         };
         this.roundMax = 3;
         this.handleButton = this.handleButton.bind(this);
@@ -214,7 +218,9 @@ class SorobanGame extends React.Component {
 			this.loadSavedSettings();
 		});
 		document.addEventListener("keydown", this.handleKeyPress, false);
-		this.getTopScores().then(latestScores => this.updateTopScores(latestScores));
+		this.getTopScores().then(latestScores => this.updateTopScores(latestScores, "current"));
+		this.getPrevTopScores().then(latestScores => this.updateTopScores(latestScores, "prev"));
+		this.getResetDate().then(resp => this.setState({resetDate: resp.nextResetDate}));
     }
 	componentWillUnmount() {
 		document.removeEventListener("keydown", this.handleKeyPress, false);
@@ -300,7 +306,7 @@ class SorobanGame extends React.Component {
                     console.log("Done with tournament run! Transitioning back");
                     const scoreData = await this.submitScore(score);
 					console.log("Current top scores: ", scoreData);
-					this.updateTopScores(scoreData);
+					this.updateTopScores(scoreData, "current");
                     this.transition(epoch);
                 }
                 break;
@@ -311,6 +317,14 @@ class SorobanGame extends React.Component {
         };
     }
 
+	async getResetDate() {
+		const requestOptions = {
+			method: 'GET',
+		};
+		var response = await fetch('https://soroban.tongpham.com/api/reset-date', requestOptions);
+		return response.json();
+	}
+
 	async getTopScores() {
 		const requestOptions = {
 			method: 'GET',
@@ -319,17 +333,33 @@ class SorobanGame extends React.Component {
 		return response.json();
 	}
 
-	updateTopScores(scoreData) {
+	async getPrevTopScores() {
+		const requestOptions = {
+			method: 'GET',
+		};
+		var response = await fetch('https://soroban.tongpham.com/api/scores/prev', requestOptions);
+		return response.json();
+	}
+
+
+	updateTopScores(scoreData, whichScore) {
 		// convert dict into list and sort descending
 		var scoreList = [];
 		Object.keys(scoreData.top_scores).forEach(name => {
 			scoreList.push({name: name, score: scoreData.top_scores[name].score, attempts: scoreData.top_scores[name].attempts});
 		});
 		scoreList.sort((a,b) => b.score - a.score);
-		console.log("Setting topScores = ", scoreList);
-		this.setState({
-			topScores: scoreList,
-		});
+		console.log(`Setting ${whichScore} topScores = `, scoreList);
+		if (whichScore === "current") {
+			this.setState({
+				topScores: scoreList,
+			});
+		}
+		else {
+			this.setState({
+				prevTopScores: scoreList,
+			});
+		}
 
 	}
 
@@ -557,11 +587,12 @@ class SorobanGame extends React.Component {
 				<h3>{modeDisplay}</h3>
 				<Scoreboard
 					style={scoreboardStyle}
+					prevTopScores={this.state.prevTopScores}
 					currTopScores={this.state.topScores}
 					playerName={this.state.playerName}
 					handleChangePlayerName={this.handleChangePlayerName}
 					disableValue={this.state.state === "READY" ? "" : "disabled"}
-
+					resetDate={this.state.resetDate}
 				/>
 				{renderSettings()}
                 <div id="main-area">
