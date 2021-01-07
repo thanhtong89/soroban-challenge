@@ -397,21 +397,25 @@ class SorobanGame extends React.Component {
 		this.speech.setRate(this.state.speechRate);
 
 		const voice = this.availableVoices[this.state.speechVoiceIndex];
-		this.speech.setLanguage(voice.lang);
-		this.speech.setVoice(voice.name);
+        if (voice !== undefined) {
+            this.speech.setLanguage(voice.lang);
+            this.speech.setVoice(voice.name);
+        }
         for (var number of numbers) {
             this.setState({currDisplay : number});
 			if (this.state.soundOption === "beep") {
 				this.beepSound.play();
 			} else {
 				//TODO: figure out correct speech rate to be able to fit into the alloted time per number
-				this.speech
-					.speak({text: number.toString()})
-					.then(data => {
-						console.log("Got data ", data);
-					}).catch(e => {
-						console.log("Got error", e);
-					});
+                if (this.speech !== null) {
+                    this.speech
+                        .speak({text: number.toString()})
+                        .then(data => {
+                            console.log("Got data ", data);
+                        }).catch(e => {
+                            console.log("Got error", e);
+                        });
+                }
 			}
             setTimeout(() => {this.setState({currDisplay: ""});}, displayTime);
             await this.sleep(timePerNumber);
