@@ -68,7 +68,7 @@ function Scoreboard(props) {
  			<label> Enter your name here:
 				<input type="text" value={props.playerName} disabled={props.disableValue} onChange={props.handleChangePlayerName}/>
 			</label>
-			<label> Next scoreboard reset : {props.resetDate}
+			<label> Next scoreboard reset : {props.resetDate.toUTCString()}
 			</label>
 		</div>
  	)
@@ -158,7 +158,7 @@ class SorobanGame extends React.Component {
 			prevTopScores : [{name:"snk", score: 1, attempts: 1}], // tracked by the server
 			topScores : [{name: "moo", score: 2, attempts: 2}], // tracked by the server, returned when submitting new scores
 			playerName: "groot",
-			resetDate : "", // time at which the scoreboard will reset
+			resetDate : new Date(), // time at which the scoreboard will reset
         };
         this.roundMax = 3;
         this.handleButton = this.handleButton.bind(this);
@@ -220,7 +220,7 @@ class SorobanGame extends React.Component {
 		document.addEventListener("keydown", this.handleKeyPress, false);
 		this.getTopScores().then(latestScores => this.updateTopScores(latestScores, "current"));
 		this.getPrevTopScores().then(latestScores => this.updateTopScores(latestScores, "prev"));
-		this.getResetDate().then(resp => this.setState({resetDate: resp.nextResetDate}));
+		this.getResetDate().then(resp => this.setState({resetDate: new Date(resp.nextResetDate)}));
     }
 	componentWillUnmount() {
 		document.removeEventListener("keydown", this.handleKeyPress, false);
