@@ -69,7 +69,6 @@ label {
     margin: 10px;
 }
 
-
 .scoreTable {
     margin: 20px;
 }
@@ -84,4 +83,8 @@ label {
 table, th, td {
     border: 1px solid black;
     border-collapse: collapse;
+}
+
+.player-name {
+    font-size: 25px;
 }

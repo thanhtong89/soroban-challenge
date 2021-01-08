@@ -55,6 +55,11 @@ function Leaderboard(props) {
 function Scoreboard(props) {
 	return (
  		<div id="scoreboard" style={props.style} vertical layout>
+			<div>
+				<label className="player-name"> Enter your name here:
+					<input className="player-name" type="text" value={props.playerName} disabled={props.disableValue} onChange={props.handleChangePlayerName}/>
+				</label>
+			</div>
 			<div id="leaderboards">
 				<Leaderboard
 					scores={props.prevTopScores}
@@ -65,11 +70,10 @@ function Scoreboard(props) {
 					tableName="current month's top 10"
 				/>
 			</div>
- 			<label> Enter your name here:
-				<input type="text" value={props.playerName} disabled={props.disableValue} onChange={props.handleChangePlayerName}/>
-			</label>
-			<label> Next scoreboard reset : {props.resetDate.toUTCString()}
-			</label>
+			<div>
+				<label> Next scoreboard reset : {props.resetDate.toUTCString()}
+				</label>
+			</div>
 		</div>
  	)
 }
@@ -578,9 +582,10 @@ class SorobanGame extends React.Component {
         var modeDisplay = "Set up your practice with the options below, then click the Start button or press Spacebar to begin.";
 		var scoreboardStyle = {display: "none"};
         if (this.state.mode === "tournament") {
-            modeDisplay = `Tournament (score per round: ${this.state.scorePerRound}): Round ${this.state.round} / ${this.roundMax}. Score: ${this.state.score}`;
+            modeDisplay = `Tournament: Round ${this.state.round} / ${this.roundMax}. Score: ${this.state.score}`;
 			scoreboardStyle = {};
         }
+		const scorePerRoundDisplay = `Score per round for current settings: ${this.state.scorePerRound}`;
      return (
             <div>
                 <h1>The Soroban Challenge!</h1>
@@ -599,6 +604,7 @@ class SorobanGame extends React.Component {
 					resetDate={this.state.resetDate}
 				/>
 				{renderSettings()}
+				<h3>{scorePerRoundDisplay}</h3>
                 <div id="main-area">
 					<div>
 						<button id="main-button" className="main-button" disabled={this.state.state === "STOPPING"} onClick={this.handleButton}>{buttonTitle}</button>
