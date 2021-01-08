@@ -579,7 +579,7 @@ class SorobanGame extends React.Component {
 			speechVoiceOptions={speechVoiceOptions}
 		/>);
 		}
-        var modeDisplay = "Set up your practice with the options below, then click the Start button or press Spacebar to begin.";
+        var modeDisplay = "Set up your practice with the options above, then click the Start button or press Spacebar to begin.";
 		var scoreboardStyle = {display: "none"};
         if (this.state.mode === "tournament") {
             modeDisplay = `Tournament: Round ${this.state.round} / ${this.roundMax}. Score: ${this.state.score}`;
@@ -593,7 +593,6 @@ class SorobanGame extends React.Component {
 					gameMode={this.state.mode}
 					handleChangeModeOption={this.handleChangeModeOption}
 				/>
-				<h3>{modeDisplay}</h3>
 				<Scoreboard
 					style={scoreboardStyle}
 					prevTopScores={this.state.prevTopScores}
@@ -605,6 +604,7 @@ class SorobanGame extends React.Component {
 				/>
 				{renderSettings()}
 				<h3>{scorePerRoundDisplay}</h3>
+				<h3>{modeDisplay}</h3>
                 <div id="main-area">
 					<div>
 						<button id="main-button" className="main-button" disabled={this.state.state === "STOPPING"} onClick={this.handleButton}>{buttonTitle}</button>
